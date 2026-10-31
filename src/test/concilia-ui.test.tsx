@@ -1,5 +1,7 @@
+import { demoData } from "@/features/concilia/demo";
+import { statementTotals, money } from "@/features/concilia/domain";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import {
   createMemoryHistory,
   createRootRoute,
@@ -66,5 +68,33 @@ describe("Office workflows", () => {
     expect(screen.getByText(/16 transações/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("link", { name: "Administração" }));
     expect(await screen.findByText("Faturamento projetado")).toBeInTheDocument();
+  });
+});
+
+describe("Statement print report", () => {
+  it("prints the entire filtered result, company identity and exact emission time", async () => {
+    const print = vi.spyOn(window, "print").mockImplementation(() => {});
+    try {
+      mount();
+      fireEvent.click(await screen.findByRole("button", { name: "Explorar demonstração" }));
+      fireEvent.click(await screen.findByRole("link", { name: "Extratos bancários" }));
+      await screen.findByText("Extrato de movimentações");
+      const table = screen.getByRole("table");
+      expect(table.querySelectorAll("tbody tr")).toHaveLength(96);
+      expect(table.querySelectorAll("tbody tr.ca-print-row")).toHaveLength(76);
+      const report = document.querySelector(".ca-report-header")!;
+      const totals = statementTotals(demoData().transactions);
+      expect(within(report as HTMLElement).getByText(money(totals.net))).toBeInTheDocument();
+      fireEvent.change(screen.getByLabelText("Filtrar cliente"), { target: { value: "client0" } });
+      expect(table.querySelectorAll("tbody tr")).toHaveLength(16);
+      expect(report).toHaveTextContent("Aurora Clínica Integrada");
+      expect(report).toHaveTextContent("00.000.000/0001-00");
+      fireEvent.change(screen.getByLabelText("Filtrar conta"), { target: { value: "account0" } });
+      expect(report).toHaveTextContent("Agência: 0001 · Conta: 10000-0");
+      fireEvent.click(screen.getByRole("button", { name: "PDF" }));
+      await waitFor(() => expect(print).toHaveBeenCalledOnce());
+      expect(report).toHaveTextContent(/Emissão:.*horário de Brasília/);
+      expect(report).toHaveTextContent(/Período: 01\//);
+    } finally { print.mockRestore(); }
   });
 });

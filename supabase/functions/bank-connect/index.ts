@@ -35,6 +35,17 @@ Deno.serve(async (req) => {
         return json(req, { success: true });
       return json(req, { error: "Convite já utilizado." }, 410);
     }
+    if (action === "info") {
+      const client = check(await db.from("clients")
+        .select("name,cnpj_cpf").eq("id", invite.client_id)
+        .eq("organization_id", invite.organization_id).single());
+      if (!client) throw new Error("Empresa indisponível.");
+      return json(req, {
+        organizationName: org.name,
+        clientName: client.name,
+        clientDocument: client.cnpj_cpf,
+      });
+    }
     if (action === "connect") {
       if (
         invite.connect_issued_at &&

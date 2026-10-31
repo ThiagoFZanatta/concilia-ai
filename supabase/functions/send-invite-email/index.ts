@@ -1,3 +1,4 @@
+import { inviteMessage } from "../_shared/invite-message.ts";
 import { actor, check, enabled, env, json } from "../_shared/cloud.ts";
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return json(req, {});
@@ -24,7 +25,7 @@ Deno.serve(async (req) => {
     const client = check(
       await db
         .from("clients")
-        .select("contact_email,name")
+        .select("contact_email,contact_name,name")
         .eq("id", invite.client_id)
         .eq("organization_id", invite.organization_id)
         .single(),
@@ -33,6 +34,13 @@ Deno.serve(async (req) => {
     const base = env("APP_BASE_URL");
     if (!base.startsWith("https://")) throw new Error("Domínio de convites não configurado.");
     const url = new URL(`/conectar/${token}`, base).href;
+    const { subject, text, html } = inviteMessage({
+      organizationName: org.name,
+      clientName: client.name,
+      contactName: client.contact_name,
+      url,
+      expiresAt: invite.expires_at,
+    });
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -43,8 +51,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         from: env("EMAIL_FROM"),
         to: client.contact_email,
-        subject: `${org.name}: autorização para conexão bancária`,
-        text: `Olá! O escritório ${org.name} solicita sua autorização para coletar os extratos bancários de ${client.name}. Acesse o link seguro: ${url}\nO convite expira em ${new Date(invite.expires_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}. Não envie senhas por e-mail ou WhatsApp.`,
+        subject, text, html,
       }),
     });
     if (!response.ok) throw new Error("Provedor de e-mail indisponível.");

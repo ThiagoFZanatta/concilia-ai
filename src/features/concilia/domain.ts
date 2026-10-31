@@ -182,3 +182,15 @@ export function billableCount(data: Data, organizationId: string, cycle: string)
       .map((u) => u.bank_item_id),
   ).size;
 }
+
+export function formatDocument(value: string) {
+  const digits = value.replace(/\D/g, "");
+  if (digits.length === 11) return digits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+  if (digits.length === 14) return digits.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5");
+  return value || "Não informado";
+}
+export function statementTotals(rows: Transaction[]) {
+  const inflow = rows.filter((t) => t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
+  const outflow = -rows.filter((t) => t.amount < 0).reduce((sum, t) => sum + t.amount, 0);
+  return { inflow, outflow, net: inflow - outflow };
+}
