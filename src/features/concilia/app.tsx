@@ -1,7 +1,7 @@
 import { flushSync } from "react-dom";
 import { inviteMessage } from "../../../supabase/functions/_shared/invite-message";
 import { useEffect, useState, type ReactNode, type FormEvent } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import {
   Activity,
   ArrowDownLeft,
@@ -29,6 +29,7 @@ import {
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cloud, useConcilia } from "./data";
+import { lovable } from "@/integrations/lovable/index";
 import {
   billing,
   billableCount,
