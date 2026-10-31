@@ -1395,19 +1395,7 @@ function Reconciliation({ cycle }: { cycle: string }) {
 }
 function CashFlow({ cycle }: { cycle: string }) {
   const f = useFiltered(cycle);
-  const summary = statementTotals(f.rows);
-  const [generatedAt, setGeneratedAt] = useState(() => new Date());
-  useEffect(() => {
-    const prepare = () => flushSync(() => setGeneratedAt(new Date()));
-    window.addEventListener("beforeprint", prepare);
-    return () => window.removeEventListener("beforeprint", prepare);
-  }, []);
-  const selectedAccount = f.accounts.find((a) => a.id === f.account);
-  const selectedItem = f.s.data.items.find((i) => i.id === f.bank);
-  const selectedClient = f.s.data.clients.find((c) => c.id ===
-    (f.client || selectedAccount?.client_id || selectedItem?.client_id));
-  const periodEnd = new Date(Number(cycle.slice(0, 4)), Number(cycle.slice(5)), 0).getDate();
-  const period = `01/${cycle.slice(5)}/${cycle.slice(0, 4)} a ${periodEnd}/${cycle.slice(5)}/${cycle.slice(0, 4)}`;
+  const summary = cashFlow(f.rows);
   const byCategory = categories
     .map((name) => ({
       name,
