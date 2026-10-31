@@ -1,24 +1,30 @@
 # Concilia AI
 
-Crie um projeto em branco.
+Hub de coleta bancária, padronização de extratos e inteligência financeira consultiva para escritórios contábeis. React, TanStack Start, Tailwind, shadcn/ui e **Lovable Cloud nativo**. A integração bancária usa Pluggy; o produto não é ERP ou sistema de escrituração.
 
-This project was built with [Lovable](https://lovable.dev).
-
-## Build with Lovable
-
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/8009db72-3175-4f75-99ea-58a85172b15b).
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
-
-## Development
-
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+## Desenvolvimento direto pelo GitHub
 
 ```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
+npm ci
 npm run dev
 ```
+
+A interface permite login com usuário provisionado no Cloud ou demonstração explícita com dados fictícios em memória. Rotas do escritório: `/app/dashboard`, `/app/clientes`, `/app/extratos`, `/app/conciliacao-ia`, `/app/fluxo-de-caixa`, `/app/configuracoes`. Administração: `/admin/dashboard`, `/admin/escritorios`, `/admin/planos`, `/admin/faturamento`. Convite público: `/conectar/<token>`.
+
+## Validação
+
+```sh
+npm run typecheck
+npm run typecheck:backend
+npm test
+npm run test:database
+npm run build
+```
+
+O teste de banco executa a migração em PostgreSQL embarcado (PGlite) e verifica RLS, isolamento entre escritórios, restrições de suspensão, privilégios de escrita, uso mensal único e concorrência no processamento de eventos. Não altera o banco remoto.
+
+## Ativação no Cloud
+
+Leia [o procedimento de ativação](docs/ATIVACAO_LOVABLE_CLOUD.md). A migração SQL, funções, agendamento e segredos precisam ser ativados no backend nativo antes de usar dados reais. Push no GitHub não executa essas etapas automaticamente. Não é necessário pedir ao chat do Lovable para gerar código ou criar um banco externo.
+
+Planos iniciais: Essencial (25 itens, R$ 249 + R$ 13,90/excedente), Crescimento (75 itens, R$ 549 + R$ 10,90/excedente), Escala (200 itens, R$ 1.290 + R$ 8,90/excedente). Contas do mesmo item não são cobradas em duplicidade. Apuração de faturamento é gerencial, sem gateway de cobrança.

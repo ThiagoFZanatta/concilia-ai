@@ -1,19 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-
+import { App } from "@/features/concilia/app";
 export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "Novo Projeto" },
-      { name: "description", content: "Projeto em branco pronto para começar." },
-      { property: "og:title", content: "Novo Projeto" },
-      { property: "og:description", content: "Projeto em branco pronto para começar." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-    ],
-  }),
-  component: Index,
+  head: () => ({ meta: [{ title: "Concilia AI | Inteligência financeira para contadores" }] }),
+  component: () => <App />,
 });
-
-function Index() {
-  return <main className="min-h-screen bg-background" />;
-}
