@@ -182,12 +182,58 @@ export function Empty({ text = "Nenhum registro encontrado." }: { text?: string 
 function Login() {
   const s = useConcilia();
   const [busy, setBusy] = useState(false);
-  async function submit(e: FormEvent<HTMLFormElement>) {
+  const [mode, setMode] = useState<"signin" | "signup" | "recover">("signin");
+  const [notice, setNotice] = useState("");
+  async function social(provider: "google" | "lovable") {
+    if (s.demo) {
+      notify("Encerre a demonstração para usar o acesso real.");
+      return;
+    }
+    setBusy(true);
+    setNotice("");
+    try {
+      const result = await lovable.auth.signInWithOAuth(provider, {
+        redirect_uri: window.location.origin,
+      });
+      if (result.error) throw result.error;
+      if (result.redirected) return;
+      await s.refresh();
+    } catch (err) {
+      notify(err);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function recover(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setBusy(true);
     const f = new FormData(e.currentTarget);
     try {
-      await s.login(String(f.get("email")), String(f.get("password")));
+      await s.recover(String(f.get("email")));
+      setNotice("Se o e-mail existir na base, enviaremos um link para criar uma nova senha.");
+      setMode("signin");
+    } catch (err) {
+      notify(err);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function submit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setBusy(true);
+    const f = new FormData(e.currentTarget);
+    const email = String(f.get("email"));
+    const password = String(f.get("password"));
+    try {
+      if (mode === "signup") {
+        await s.signup(email, password);
+        setNotice(
+          "Conta criada. Abra sua caixa de entrada e confirme o e-mail para concluir o acesso.",
+        );
+        setMode("signin");
+      } else {
+        await s.login(email, password);
+      }
     } catch (err) {
       notify(err);
     } finally {
@@ -228,38 +274,121 @@ function Login() {
       </section>
       <article className="ca-login-card">
         <span className="ca-eyebrow">BEM-VINDO AO CONCILIA AI</span>
-        <h2>Seu escritório conectado.</h2>
-        <p>Entre com o acesso disponibilizado pelo administrador.</p>
-        <form onSubmit={submit}>
-          <Field label="E-mail">
-            <input
-              name="email"
-              type="email"
-              autoComplete="email"
-              required
-              placeholder="voce@escritorio.com.br"
-            />
-          </Field>
-          <Field label="Senha">
-            <input
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              required
-              minLength={6}
-              placeholder="Sua senha"
-            />
-          </Field>
-          <Button type="submit" disabled={busy} className="ca-full">
-            {busy ? "Entrando…" : "Acessar plataforma"}
-            <ChevronRight size={16} />
-          </Button>
-        </form>
+        <h2>{mode === "signup" ? "Crie o acesso do escritório." : "Seu escritório conectado."}</h2>
+        <p>
+          {mode === "signup"
+            ? "Cadastre e-mail e senha. Você confirma o e-mail e o administrador vincula o escritório."
+            : "Entre com o acesso disponibilizado pelo administrador."}
+        </p>
+        {notice && (
+          <p role="status" className="ca-notice">
+            {notice}
+          </p>
+        )}
+        {mode === "recover" ? (
+          <form onSubmit={recover}>
+            <Field label="E-mail">
+              <input
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                placeholder="voce@escritorio.com.br"
+              />
+            </Field>
+            <Button type="submit" disabled={busy} className="ca-full">
+              {busy ? "Enviando…" : "Enviar link de recuperação"}
+            </Button>
+          </form>
+        ) : (
+          <form onSubmit={submit}>
+            <Field label="E-mail">
+              <input
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                placeholder="voce@escritorio.com.br"
+              />
+            </Field>
+            <Field label="Senha">
+              <input
+                name="password"
+                type="password"
+                autoComplete={mode === "signup" ? "new-password" : "current-password"}
+                required
+                minLength={6}
+                placeholder="Sua senha"
+              />
+            </Field>
+            <Button type="submit" disabled={busy} className="ca-full">
+              {busy
+                ? "Aguarde…"
+                : mode === "signup"
+                  ? "Criar conta e confirmar e-mail"
+                  : "Acessar plataforma"}
+              <ChevronRight size={16} />
+            </Button>
+          </form>
+        )}
         {s.error && (
           <p role="alert" className="ca-error">
             {s.error}
           </p>
         )}
+        <div className="ca-divider">OU CONTINUE COM</div>
+        <div className="ca-social">
+          <Button
+            type="button"
+            variant="outline"
+            className="ca-full"
+            disabled={busy}
+            onClick={() => void social("google")}
+          >
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+              <path
+                fill="#4285F4"
+                d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.63h6.46a5.52 5.52 0 0 1-2.4 3.62v3h3.88c2.27-2.09 3.58-5.17 3.58-8.8z"
+              />
+              <path
+                fill="#34A853"
+                d="M12 24c3.24 0 5.96-1.08 7.94-2.93l-3.88-3c-1.08.72-2.45 1.15-4.06 1.15-3.12 0-5.77-2.11-6.71-4.95H1.28v3.09A12 12 0 0 0 12 24z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M5.29 14.27a7.21 7.21 0 0 1 0-4.54V6.64H1.28a12 12 0 0 0 0 10.72l4.01-3.09z"
+              />
+              <path
+                fill="#EA4335"
+                d="M12 4.76c1.76 0 3.34.6 4.59 1.79l3.44-3.44A11.97 11.97 0 0 0 12 0 12 12 0 0 0 1.28 6.64l4.01 3.09C6.23 6.88 8.88 4.76 12 4.76z"
+              />
+            </svg>
+            Entrar com Google
+          </Button>
+          <button
+            type="button"
+            className="lovable-auth-button ca-full"
+            disabled={busy}
+            onClick={() => void social("lovable")}
+          >
+            Entrar com Lovable
+          </button>
+        </div>
+        <div className="ca-divider">AINDA SEM ACESSO?</div>
+        <Button
+          type="button"
+          variant="ghost"
+          className="ca-full"
+          onClick={() => {
+            setNotice("");
+            setMode(mode === "signup" ? "signin" : "signup");
+          }}
+        >
+          {mode === "signup" ? "Já tenho acesso" : "Criar conta do escritório"}
+        </Button>
+        <Button type="button" variant="link" onClick={() => setMode("recover")}>
+          Esqueci minha senha
+        </Button>
         <div className="ca-divider">CONHEÇA A PLATAFORMA</div>
         <Button variant="outline" onClick={s.enterDemo} className="ca-full">
           Explorar demonstração
@@ -267,6 +396,115 @@ function Login() {
         <small>
           Ambiente demonstrativo com dados fictícios. Nenhuma conexão bancária é realizada.
         </small>
+      </article>
+    </div>
+  );
+}
+export function ResetPassword() {
+  const s = useConcilia();
+  const navigate = useNavigate();
+  const [busy, setBusy] = useState(false);
+  const [recovery, setRecovery] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      window.location.hash.includes("type=recovery") &&
+      !window.location.hash.includes("error_code"),
+  );
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = cloud.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_IN" || event === "USER_UPDATED") setRecovery(true);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+  async function submit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setBusy(true);
+    const f = new FormData(e.currentTarget);
+    const password = String(f.get("password"));
+    if (password !== String(f.get("confirm"))) {
+      notify("As senhas informadas não coincidem.");
+      setBusy(false);
+      return;
+    }
+    try {
+      const { error } = await cloud.auth.updateUser({ password });
+      if (error) throw error;
+      toast.success("Senha atualizada. Você já pode acessar a plataforma.");
+      await navigate({ to: "/" });
+    } catch (err) {
+      notify(err);
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <div className="ca-login">
+      <section>
+        <div className="ca-brand">
+          <span>
+            <Activity />
+          </span>
+          concilia<span className="ca-ai">AI</span>
+        </div>
+        <span className="ca-eyebrow">RECUPERAÇÃO DE ACESSO</span>
+        <h1>
+          Nova senha
+          <br />
+          para o seu escritório.
+        </h1>
+        <p>
+          Escolha uma senha que você não usa em outros sistemas. A proteção contra senhas vazadas é
+          verificada automaticamente.
+        </p>
+        <small>Hub bancário para escritórios contábeis · Concilia AI</small>
+      </section>
+      <article className="ca-login-card">
+        <span className="ca-eyebrow">DEFINIR NOVA SENHA</span>
+        <h2>Escolha sua nova senha.</h2>
+        {recovery ? (
+          <form onSubmit={submit}>
+            <Field label="Nova senha">
+              <input
+                name="password"
+                type="password"
+                autoComplete="new-password"
+                required
+                minLength={6}
+                placeholder="Nova senha"
+              />
+            </Field>
+            <Field label="Confirmar nova senha">
+              <input
+                name="confirm"
+                type="password"
+                autoComplete="new-password"
+                required
+                minLength={6}
+                placeholder="Repita a nova senha"
+              />
+            </Field>
+            <Button type="submit" disabled={busy} className="ca-full">
+              {busy ? "Salvando…" : "Salvar nova senha"}
+              <ChevronRight size={16} />
+            </Button>
+          </form>
+        ) : (
+          <p className="ca-notice">
+            Abra o link enviado ao seu e-mail para definir a nova senha. O link vale um único uso e
+            expira em alguns minutos.
+          </p>
+        )}
+        {s.error && (
+          <p role="alert" className="ca-error">
+            {s.error}
+          </p>
+        )}
+        <div className="ca-divider">VOLTA</div>
+        <Link to="/" className="ca-full" style={{ textAlign: "center" }}>
+          Voltar ao acesso
+        </Link>
       </article>
     </div>
   );
