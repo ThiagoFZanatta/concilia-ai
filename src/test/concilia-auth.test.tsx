@@ -21,6 +21,12 @@ const cloudMock = vi.hoisted(() => ({
   signOut: vi.fn(),
 }));
 const lovableMock = vi.hoisted(() => ({ signInWithOAuth: vi.fn() }));
+const toastMock = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
+
+vi.mock("sonner", () => ({
+  toast: Object.assign((..._args: unknown[]) => {}, toastMock),
+  Toaster: () => null,
+}));
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
@@ -128,8 +134,8 @@ describe("Sign-up and password recovery", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Salvar nova senha" }));
     await waitFor(() => expect(cloudMock.updateUser).toHaveBeenCalledWith({ password: "nova-senha-1" }));
-    await waitFor(() =>
-      expect(document.body.textContent).toContain("Senha atualizada. Você já pode acessar a plataforma."),
+    expect(toastMock.success).toHaveBeenCalledWith(
+      "Senha atualizada. Você já pode acessar a plataforma.",
     );
     await waitFor(() => expect(window.location.pathname).toBe("/"));
     window.location.hash = "";
