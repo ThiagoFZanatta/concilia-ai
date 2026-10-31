@@ -872,6 +872,19 @@ progress::-moz-progress-bar {
   color: #bb5353 !important;
   font-size: 12px;
 }
+.ca-notice {
+  background: #eaf7f1;
+  padding: 12px;
+  border-radius: 6px;
+  color: #1d6b52;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.ca-social {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
 .ca-loading {
   display: flex;
   align-items: center;

@@ -18,6 +18,8 @@ Todas as tabelas públicas têm RLS. Convites não são legíveis anonimamente. 
 
 ## 2. Primeiro administrador e equipe
 
+Quem ainda não tem acesso pode se cadastrar na própria tela de acesso da plataforma, com e-mail e senha, e precisa confirmar o e-mail antes de entrar. Senhas já vazadas em incidentes públicos são recusadas no cadastro. Também é possível entrar com Google ou com a conta Lovable. O cadastro não concede vínculo com nenhum escritório: sem ele, a pessoa vê apenas a orientação para contatar o administrador.
+
 Crie ou convide o usuário na administração de autenticação do Cloud, confirme o e-mail e execute `docs/bootstrap-admin.sql`, substituindo o endereço indicado pelo e-mail do proprietário. Nenhum cadastro recebe poderes de Super Admin automaticamente.
 
 O Super Admin pode cadastrar escritórios e definir seus planos na interface. Para vincular uma equipe a um escritório existente, execute no SQL administrativo (UUIDs devem ser copiados das linhas reais):
