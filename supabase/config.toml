@@ -1,1 +1,11 @@
 project_id = "byacffecuvyjsygwqfns"
+[functions.bank-connect]
+verify_jwt = false
+[functions.pluggy-webhook]
+verify_jwt = false
+[functions.bank-worker]
+verify_jwt = false
+[functions.categorize-transactions]
+verify_jwt = true
+[functions.send-invite-email]
+verify_jwt = true

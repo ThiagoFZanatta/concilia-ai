@@ -10,33 +10,97 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AdminPageRouteImport } from './routes/admin.$page'
+import { Route as AppIndexRouteImport } from './routes/app.index'
+import { Route as AppPageRouteImport } from './routes/app.$page'
+import { Route as ConectarTokenRouteImport } from './routes/conectar.$token'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminPageRoute = AdminPageRouteImport.update({
+  id: '/admin/$page',
+  path: '/admin/$page',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppIndexRoute = AppIndexRouteImport.update({
+  id: '/app/',
+  path: '/app/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppPageRoute = AppPageRouteImport.update({
+  id: '/app/$page',
+  path: '/app/$page',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConectarTokenRoute = ConectarTokenRouteImport.update({
+  id: '/conectar/$token',
+  path: '/conectar/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin/$page': typeof AdminPageRoute
+  '/app/$page': typeof AppPageRoute
+  '/conectar/$token': typeof ConectarTokenRoute
+  '/admin/': typeof AdminIndexRoute
+  '/app/': typeof AppIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin/$page': typeof AdminPageRoute
+  '/app/$page': typeof AppPageRoute
+  '/conectar/$token': typeof ConectarTokenRoute
+  '/admin': typeof AdminIndexRoute
+  '/app': typeof AppIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin/$page': typeof AdminPageRoute
+  '/app/$page': typeof AppPageRoute
+  '/conectar/$token': typeof ConectarTokenRoute
+  '/admin/': typeof AdminIndexRoute
+  '/app/': typeof AppIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/admin/$page'
+    | '/app/$page'
+    | '/conectar/$token'
+    | '/admin/'
+    | '/app/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    '/' | '/admin/$page' | '/app/$page' | '/conectar/$token' | '/admin' | '/app'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin/$page'
+    | '/app/$page'
+    | '/conectar/$token'
+    | '/admin/'
+    | '/app/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminPageRoute: typeof AdminPageRoute
+  AppPageRoute: typeof AppPageRoute
+  ConectarTokenRoute: typeof ConectarTokenRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+  AppIndexRoute: typeof AppIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +112,51 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/': {
+      id: '/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/$page': {
+      id: '/admin/$page'
+      path: '/admin/$page'
+      fullPath: '/admin/$page'
+      preLoaderRoute: typeof AdminPageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/': {
+      id: '/app/'
+      path: '/app'
+      fullPath: '/app/'
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/$page': {
+      id: '/app/$page'
+      path: '/app/$page'
+      fullPath: '/app/$page'
+      preLoaderRoute: typeof AppPageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/conectar/$token': {
+      id: '/conectar/$token'
+      path: '/conectar/$token'
+      fullPath: '/conectar/$token'
+      preLoaderRoute: typeof ConectarTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminPageRoute: AdminPageRoute,
+  AppPageRoute: AppPageRoute,
+  ConectarTokenRoute: ConectarTokenRoute,
+  AdminIndexRoute: AdminIndexRoute,
+  AppIndexRoute: AppIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
