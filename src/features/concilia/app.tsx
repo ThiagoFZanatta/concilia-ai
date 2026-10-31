@@ -1,4 +1,6 @@
-import { useState, type ReactNode, type FormEvent } from "react";
+import { flushSync } from "react-dom";
+import { inviteMessage } from "../../../supabase/functions/_shared/invite-message";
+import { useEffect, useState, type ReactNode, type FormEvent } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   Activity,
@@ -33,6 +35,8 @@ import {
   cashFlow,
   categories,
   cycleNow,
+  formatDocument,
+  statementTotals,
   money,
   upgrade,
   type Client,
@@ -708,6 +712,8 @@ function Clients() {
       setBusy(false);
     }
   }
+  const message = link ? inviteMessage({ organizationName: org.name, clientName: link.client.name,
+    contactName: link.client.contact_name, url: link.url }) : null;
   async function invite(c: Client, itemId?: string) {
     setBusy(true);
     try {
@@ -855,7 +861,7 @@ function Clients() {
                 <a
                   target="_blank"
                   rel="noreferrer"
-                  href={`https://wa.me/${link.client.contact_whatsapp.replace(/\D/g, "")}?text=${encodeURIComponent(`Olá! ${org.name} solicita a conexão segura do seu banco para coleta de extratos. Autorize em: ${link.url}`)}`}
+                  href={`https://wa.me/${link.client.contact_whatsapp.replace(/\D/g, "")}?text=${encodeURIComponent(message!.whatsapp)}`}
                 >
                   WhatsApp
                 </a>
@@ -889,7 +895,7 @@ function Clients() {
             </Button>
             <Button variant="outline" asChild>
               <a
-                href={`mailto:${link.client.contact_email}?subject=${encodeURIComponent("Autorização de conexão bancária")}&body=${encodeURIComponent(`Olá! ${org.name} solicita sua autorização para coleta de extratos pelo link seguro: ${link.url}`)}`}
+                href={`mailto:${link.client.contact_email}?subject=${encodeURIComponent(message!.subject)}&body=${encodeURIComponent(message!.text)}`}
               >
                 Preparar e-mail
               </a>
@@ -1049,7 +1055,19 @@ function Statements({ cycle }: { cycle: string }) {
   const disabled = org.status === "suspended";
   const pages = Math.max(1, Math.ceil(f.rows.length / 20));
   const current = Math.min(page, pages - 1);
-  const summary = cashFlow(f.rows);
+  const summary = statementTotals(f.rows);
+  const [generatedAt, setGeneratedAt] = useState(() => new Date());
+  useEffect(() => {
+    const prepare = () => flushSync(() => setGeneratedAt(new Date()));
+    window.addEventListener("beforeprint", prepare);
+    return () => window.removeEventListener("beforeprint", prepare);
+  }, []);
+  const selectedAccount = f.accounts.find((a) => a.id === f.account);
+  const selectedItem = f.s.data.items.find((i) => i.id === f.bank);
+  const selectedClient = f.s.data.clients.find((c) => c.id ===
+    (f.client || selectedAccount?.client_id || selectedItem?.client_id));
+  const periodEnd = new Date(Number(cycle.slice(0, 4)), Number(cycle.slice(5)), 0).getDate();
+  const period = `01/${cycle.slice(5)}/${cycle.slice(0, 4)} a ${periodEnd}/${cycle.slice(5)}/${cycle.slice(0, 4)}`;
   async function exportFile(kind: string) {
     try {
       if (!f.s.demo) {
@@ -1064,6 +1082,7 @@ function Statements({ cycle }: { cycle: string }) {
       if (disabled) throw new Error("Exportações bloqueadas pela licença.");
       if (!f.rows.length) throw new Error("Não há transações para exportar.");
       if (kind === "pdf") {
+        flushSync(() => setGeneratedAt(new Date()));
         window.print();
         return;
       }
@@ -1107,17 +1126,31 @@ function Statements({ cycle }: { cycle: string }) {
         />
       </div>
       <section className="ca-card ca-statement">
+        <header className="ca-print-only ca-report-header">
+          <strong>{org.name}</strong>
+          <h2>Relatório de Movimentações Financeiras</h2>
+          <p>Empresa: <strong>{selectedClient?.name ?? "Carteira consolidada — todos os clientes"}</strong></p>
+          <p>CNPJ/CPF: {selectedClient ? formatDocument(selectedClient.cnpj_cpf) : "Múltiplas empresas — identificação por lançamento"}</p>
+          <p>{selectedAccount
+            ? `Banco: ${f.s.data.items.find((i) => i.id === selectedAccount.bank_item_id)?.connector_name ?? selectedAccount.name} · Código: ${selectedAccount.bank_code || "Não informado"} · Agência: ${selectedAccount.agency || "Não informada"} · Conta: ${selectedAccount.number || "Não informada"}`
+            : `Todas as contas correntes${selectedItem ? ` · Banco: ${selectedItem.connector_name}` : ""}`}</p>
+          <p>Período: {period}</p>
+          <p>Emissão: {generatedAt.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })} (horário de Brasília)</p>
+          <p>Filtros: {f.type === "CREDIT" ? "Entradas" : f.type === "DEBIT" ? "Saídas" : "Entradas e saídas"}{f.search ? ` · Descrição: ${f.search}` : ""} · {f.rows.length} transações</p>
+          <div className="ca-report-totals">
+            <div><span>Total de Entradas</span><strong className="ca-credit">{money(summary.inflow)}</strong></div>
+            <div><span>Total de Saídas</span><strong className="ca-debit">{money(summary.outflow)}</strong></div>
+            <div><span>Resultado Líquido do Período</span><strong>{money(summary.net)}</strong></div>
+          </div>
+          <small>Entradas menos saídas de todos os lançamentos filtrados; não representa o saldo bancário.</small>
+        </header>
         <div className="ca-section-heading">
           <div>
             <h2>Extrato de movimentações</h2>
             <p>
               {org.name} · {cycle} · {f.rows.length} transações
             </p>
-            <p className="ca-print-only">
-              Cliente:{" "}
-              {f.s.data.clients.find((c) => c.id === f.client)?.name ?? "Carteira consolidada"} ·
-              Conta: {f.s.data.accounts.find((a) => a.id === f.account)?.number ?? "Consolidada"}
-            </p>
+
           </div>
           <div className="ca-actions">
             {["ofx", "pdf", "txt"].map((kind) => (
