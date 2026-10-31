@@ -45,6 +45,8 @@ type Context = {
   suggest: () => Promise<void>;
   invite: (clientId: string, itemId?: string) => Promise<string>;
   login: (email: string, password: string) => Promise<void>;
+  signup: (email: string, password: string) => Promise<void>;
+  recover: (email: string) => Promise<void>;
   logout: () => Promise<void>;
   enterDemo: () => void;
 };
@@ -157,7 +159,7 @@ export function ConciliaProvider({ children }: { children: ReactNode }) {
         setData(empty);
         setDemo(false);
       }
-      if (event === "SIGNED_IN") setTimeout(() => void load(), 0);
+      if (event === "SIGNED_IN" || event === "USER_UPDATED") setTimeout(() => void load(), 0);
     });
     return () => { ++loadVersion.current; subscription.unsubscribe(); };
   }, []);
@@ -287,6 +289,26 @@ export function ConciliaProvider({ children }: { children: ReactNode }) {
       });
       if (error) throw error;
       return `${location.origin}/conectar/${result}`;
+    },
+    async signup(email, password) {
+      if (demoActive.current) throw new Error("Demonstração não permite cadastro no Cloud.");
+      const { data, error } = await cloud.auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo: window.location.origin },
+      });
+      // With email confirmation on, a successful sign-up returns no session:
+      // the account only works after the person clicks the link in their e-mail.
+      if (error) throw error;
+      if (!data.session) return;
+      await load();
+    },
+    async recover(email) {
+      if (demoActive.current) throw new Error("Demonstração não envia e-mails.");
+      const { error } = await cloud.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
     },
     async login(email, password) {
       demoActive.current = false;
