@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { demoData } from "./demo";
@@ -77,7 +77,13 @@ export function ConciliaProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [organizationId, setOrganizationId] = useState("");
+  // Invalidate in-flight real loads when entering demo or changing auth session.
+  const demoActive = useRef(false);
+  const loadVersion = useRef(0);
   async function load() {
+    if (demoActive.current) return;
+    const version = ++loadVersion.current;
+    const current = () => !demoActive.current && loadVersion.current === version;
     setLoading(true);
     setError("");
     try {
@@ -85,6 +91,7 @@ export function ConciliaProvider({ children }: { children: ReactNode }) {
         data: { user: verified },
         error: authError,
       } = await cloud.auth.getUser();
+      if (!current()) return;
       if (authError && authError.name !== "AuthSessionMissingError") throw authError;
       setUser(verified);
       if (!verified) {
@@ -112,6 +119,7 @@ export function ConciliaProvider({ children }: { children: ReactNode }) {
         rows<Usage>("billing_item_usage"),
         rows<{ key: string; value: unknown }>("system_settings"),
       ]);
+      if (!current()) return;
       const next = {
         organizations,
         plans,
@@ -131,9 +139,9 @@ export function ConciliaProvider({ children }: { children: ReactNode }) {
         next.organizations.some((o) => o.id === old) ? old : (next.organizations[0]?.id ?? ""),
       );
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Falha ao carregar o Cloud.");
+      if (current()) setError(e instanceof Error ? e.message : "Falha ao carregar o Cloud.");
     } finally {
-      setLoading(false);
+      if (current()) setLoading(false);
     }
   }
   useEffect(() => {
@@ -141,19 +149,23 @@ export function ConciliaProvider({ children }: { children: ReactNode }) {
     const {
       data: { subscription },
     } = cloud.auth.onAuthStateChange((event) => {
+      if (demoActive.current) return;
       if (event === "SIGNED_OUT") {
+        ++loadVersion.current;
+        setLoading(false);
         setUser(null);
         setData(empty);
         setDemo(false);
       }
       if (event === "SIGNED_IN") setTimeout(() => void load(), 0);
     });
-    return () => subscription.unsubscribe();
+    return () => { ++loadVersion.current; subscription.unsubscribe(); };
   }, []);
   const refresh = async () => {
-    if (!demo) await load();
+    if (!demoActive.current) await load();
   };
   async function mutate(table: string, value: object, id?: string) {
+    if (demoActive.current) throw new Error("Demonstração não permite escrita no Cloud.");
     const request = id
       ? cloud.from(table).update(value).eq("id", id).select()
       : cloud.from(table).insert(value).select();
@@ -174,6 +186,8 @@ export function ConciliaProvider({ children }: { children: ReactNode }) {
       demo || data.members.some((m) => m.user_id === user?.id && m.role === "super_admin"),
     refresh,
     enterDemo() {
+      demoActive.current = true;
+      ++loadVersion.current;
       setDemo(true);
       setUser(null);
       setData(demoData());
@@ -182,7 +196,7 @@ export function ConciliaProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     },
     async saveClient(value, id) {
-      if (demo) {
+      if (demoActive.current) {
         setData((d) => ({
           ...d,
           clients: id
@@ -197,7 +211,7 @@ export function ConciliaProvider({ children }: { children: ReactNode }) {
       await mutate("clients", { ...value, organization_id: organizationId }, id);
     },
     async saveOrganization(id, value) {
-      if (demo) {
+      if (demoActive.current) {
         setData((d) => ({
           ...d,
           organizations: d.organizations.map((o) => (o.id === id ? { ...o, ...value } : o)),
@@ -207,7 +221,7 @@ export function ConciliaProvider({ children }: { children: ReactNode }) {
       await mutate("organizations", value, id);
     },
     async createOrganization(value) {
-      if (demo) {
+      if (demoActive.current) {
         setData((d) => ({
           ...d,
           organizations: [...d.organizations, { ...value, id: crypto.randomUUID() }],
@@ -217,14 +231,14 @@ export function ConciliaProvider({ children }: { children: ReactNode }) {
       await mutate("organizations", value);
     },
     async savePlan(plan) {
-      if (demo) {
+      if (demoActive.current) {
         setData((d) => ({ ...d, plans: d.plans.map((p) => (p.id === plan.id ? plan : p)) }));
         return;
       }
       await mutate("plans", plan, plan.id);
     },
     async review(ids, category) {
-      if (demo) {
+      if (demoActive.current) {
         setData((d) => ({
           ...d,
           transactions: d.transactions.map((t) =>
@@ -247,7 +261,7 @@ export function ConciliaProvider({ children }: { children: ReactNode }) {
       await load();
     },
     async suggest() {
-      if (demo) {
+      if (demoActive.current) {
         const { suggestCategory } = await import("./domain");
         setData((d) => ({
           ...d,
@@ -266,7 +280,7 @@ export function ConciliaProvider({ children }: { children: ReactNode }) {
       await load();
     },
     async invite(clientId, itemId) {
-      if (demo) return `${location.origin}/conectar/demo-${clientId}`;
+      if (demoActive.current) return `${location.origin}/conectar/demo-${clientId}`;
       const { data: result, error } = await cloud.rpc("create_bank_invite", {
         target_client: clientId,
         target_item: itemId ?? null,
@@ -275,16 +289,20 @@ export function ConciliaProvider({ children }: { children: ReactNode }) {
       return `${location.origin}/conectar/${result}`;
     },
     async login(email, password) {
+      demoActive.current = false;
+      ++loadVersion.current;
       setDemo(false);
       const { error } = await cloud.auth.signInWithPassword({ email, password });
       if (error) throw error;
       await load();
     },
     async logout() {
-      if (!demo) {
+      if (!demoActive.current) {
         const { error } = await cloud.auth.signOut();
         if (error) throw error;
       }
+      demoActive.current = false;
+      ++loadVersion.current;
       setUser(null);
       setDemo(false);
       setData(empty);
