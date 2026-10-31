@@ -95,3 +95,7 @@ Publique novamente `bank-connect`, `send-invite-email` e seus módulos compartil
 E-mail HTML, texto simples e WhatsApp usam o mesmo modelo. Os textos não afirmam homologação específica pelo Banco Central nem criptografia ponta a ponta sem comprovação; explicam a finalidade de leitura, HTTPS e a ausência de autorização para movimentação financeira.
 
 O relatório impresso inclui todas as linhas filtradas, mesmo fora da página web atual, e soma todos os créditos e débitos, incluindo transferências internas (diferentemente do fluxo de caixa consultivo). A emissão usa o horário de São Paulo. Valide a paginação e as cores na prévia de impressão do navegador; a opção de imprimir cores/fundos depende da configuração do usuário.
+
+## Estado da aplicação do esquema
+
+A migração inicial já foi aplicada ao banco nativo em 31/10/2026. Não a execute novamente. Consulte `docs/STATUS_ATIVACAO_CLOUD.md` para evidências, limitações e pendências reais; use `docs/VERIFICACAO_CLOUD.sql` para checagens de leitura. A aplicação do esquema não implica bootstrap de usuário, publicação de funções ou configuração de segredos.
