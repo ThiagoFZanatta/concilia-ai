@@ -128,7 +128,9 @@ describe("Sign-up and password recovery", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Salvar nova senha" }));
     await waitFor(() => expect(cloudMock.updateUser).toHaveBeenCalledWith({ password: "nova-senha-1" }));
-    expect(await screen.findByText("Senha atualizada. Você já pode acessar a plataforma.")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(document.body.textContent).toContain("Senha atualizada. Você já pode acessar a plataforma."),
+    );
     await waitFor(() => expect(window.location.pathname).toBe("/"));
     window.location.hash = "";
   });
