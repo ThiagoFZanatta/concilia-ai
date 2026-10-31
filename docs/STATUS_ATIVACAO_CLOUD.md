@@ -16,7 +16,9 @@ Use `docs/VERIFICACAO_CLOUD.sql` para repetir as verificações de catálogo e p
 
 ## Pendências verificadas
 
-- O usuário `thiago@zanattaemota.com.br` não existe no Auth. O bootstrap não foi executado, pois exige essa conta com e-mail confirmado. Criar a conta pelos recursos administrativos de Auth do Cloud e confirmar o e-mail; em seguida executar `docs/bootstrap-admin.sql`. Não há promoção por primeiro login ou metadados de cadastro.
+- O usuário `thiago@zanattaemota.com.br` foi criado e teve o e-mail confirmado em 31/10/2026. O bootstrap ainda não foi executado: é preciso rodar `docs/bootstrap-admin.sql` para conceder o papel de Super Admin. Não há promoção por primeiro login ou metadados de cadastro.
+- O cadastro por e-mail e senha foi habilitado no Cloud (com confirmação de e-mail obrigatória e bloqueio de senhas vazadas), junto com o acesso por Google e por conta Lovable e a recuperação de senha por link. A tela de acesso passou a oferecer "Criar conta do escritório", "Esqueci minha senha" e os dois botões de acesso externo; a página `/reset-password` define a nova senha a partir do link. O limite de e-mails de autenticação foi elevado para 50 por hora.
+- O envio de e-mails de autenticação usa o remetente padrão da plataforma enquanto não houver domínio de e-mail configurado; a entrega ainda não foi verificada com um envio real.
 - Login real de Super Admin, criação real de escritório e vínculo de equipe não foram testados por falta dessa conta. Não foi criado um escritório fictício em produção.
 - Listagem de funções e advisors pelo conector Supabase retornou falta de permissão. Não foi possível verificar ou publicar as funções nem confirmar segredos. Isso não afeta o SQL aplicado pelo conector Lovable. Não configurar um projeto Supabase externo como alternativa.
 - Credenciais Pluggy, OpenAI, remetente de e-mail, origens, URL pública, webhook e agendamento continuam exigindo verificação nos recursos administrativos do Cloud. Não foram lidos nem versionados valores de segredos.
